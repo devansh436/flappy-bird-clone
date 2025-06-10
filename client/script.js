@@ -92,7 +92,7 @@ function flap() {
 }
 
 // Game loop
-function gameLoop(timestamp) {
+async function gameLoop(timestamp) {
     if (!lastFrameTime) lastFrameTime = timestamp;
     
     const delta = timestamp - lastFrameTime;
@@ -101,7 +101,7 @@ function gameLoop(timestamp) {
     applyEffects(delta);
     
     if (!isGameOver) requestAnimationFrame(gameLoop);
-    else gameLost();
+    else await gameLost();
 }
 
 // User Lost: stop gameloop and reset variables
@@ -132,7 +132,6 @@ async function gameLost() {
             confirmButton: 'game-over-button'
         }
     });
-    setTimeout(3000);
 }
 
 // Pipe generation logic
@@ -276,7 +275,6 @@ async function getCredentials() {
 async function setup() {
     if (localStorage.getItem('smart_boi')) {
         userID = localStorage.getItem('smart_boi');
-        console.log('bye bye lol');
         return;
     }
 
@@ -302,7 +300,6 @@ async function updateUserData(userID, gamesPlayed, score,
         userID, gamesPlayed, score, 
         timePlayed, flapCount, sessionLength
     };
-    console.log('UserData:', userData);
     try {
         const res = await fetch('/scores', {
             method: 'PUT',
@@ -311,7 +308,6 @@ async function updateUserData(userID, gamesPlayed, score,
             },
             body: JSON.stringify(userData)
         });
-        console.log(res);
     } catch (err) {
         console.log('Error updating data.');
     }

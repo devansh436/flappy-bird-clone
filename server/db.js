@@ -37,7 +37,6 @@ async function getUserData(userID) {
     let result;
     try {
         await connectDB();
-        console.log('User id in getUserData(data):', userID);
         result = await collection.find({ user_id : userID }).toArray();
         return result;
     } catch (err) {
@@ -48,7 +47,6 @@ async function getUserData(userID) {
 
 // Create record
 async function createUser(user) {
-    console.log(user);
     let result;
     try {
         await connectDB();
