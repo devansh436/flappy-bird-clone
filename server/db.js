@@ -1,8 +1,9 @@
-const { MongoClient, ObjectId } = require('mongodb');
-const uri = 'mongodb://localhost:27017';
+const { MongoClient } = require('mongodb');
+const dotenv = require('dotenv');
+dotenv.config();
 
+const uri = process.env.MONGO_URI;
 let client, db, collection;
-
 async function connectDB() {
     if (!client) {
         client = new MongoClient(uri);
@@ -12,14 +13,12 @@ async function connectDB() {
         console.log('Connected to database.'); 
     }
 }
-
 async function closeConnection() {
     if (client) {
         await client.close();
         console.log('Connection closed.');
     }
 }
-
 // Read all records
 async function getAllUserData() {
     let result;
@@ -67,11 +66,12 @@ async function createUser(user) {
     }
 }
 
-// Update record
+// Update record    
 async function updateUserData(user) {
     let result;
     try {
         await connectDB();
+        console.log(user);
         const userRecord = await collection.findOne({ user_id: user.userID });
 
         const prevHighScore = userRecord.highest_score;
@@ -101,5 +101,5 @@ async function updateUserData(user) {
 }
 
 module.exports = {
-    createUser, getUserData, updateUserData
+    createUser, getUserData, getAllUserData, updateUserData
 };

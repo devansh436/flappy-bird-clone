@@ -15,9 +15,11 @@ let score = 0;
 let pipesOnScreen = [];
 let flapCount = 0;
 let userID;
+let cachedLeaderboard = null;
 let sessionStartTime, sessionEndTime, sessionLength;
 const mainWindow = document.getElementById('gamePlayWindow');
 const gameOverlay = document.getElementById('gameOverlay');
+const leaderboard = document.getElementById('leaderboard');
 const scoreElement = document.getElementById('scoreValue');
 const mainStyle = getComputedStyle(mainWindow);
 const mainWidth = parseInt(mainStyle.width);
@@ -36,7 +38,7 @@ const topBound = parseInt(mainStyle.top);
 const leftBound = parseInt(mainStyle.left);
 const bottomBound = parseInt(mainStyle.top) + mainHeight;
 const rightBound = parseInt(mainStyle.left) + mainWidth;
-const pipeSpawnX = rightBound - pipeWidth;
+const pipeSpawnX = rightBound + pipeWidth;
 
 // Gravity, motion, pipe generation
 function applyEffects(delta) {
@@ -92,7 +94,7 @@ function flap() {
 }
 
 // Game loop
-async function gameLoop(timestamp) {
+function gameLoop(timestamp) {
     if (!lastFrameTime) lastFrameTime = timestamp;
     
     const delta = timestamp - lastFrameTime;
@@ -101,7 +103,7 @@ async function gameLoop(timestamp) {
     applyEffects(delta);
     
     if (!isGameOver) requestAnimationFrame(gameLoop);
-    else await gameLost();
+    else gameLost();
 }
 
 // User Lost: stop gameloop and reset variables
@@ -115,23 +117,23 @@ async function gameLost() {
         flapCount, sessionLength);
     
     await Swal.fire({
-        title: 'You Lost!',
-        icon : 'error',
-        confirmButtonText: 'Restart',
-        confirmButtonColor: '#d33',
-        background: '#e6ffe6',
-        color:'#333',
-        allowOutsideClick: true,    // Click outside to close
-        allowEscapeKey: true,       // Press ESC to close
-        showCloseButton: true,      // Show X button in top-right
-        html: `<div>Score: ${score}.<br> Wanna try again?</div>`,
-        customClass: {
-            popup: 'game-over-popup',
-            title: 'game-over-title',
-            content: 'game-over-content',
-            confirmButton: 'game-over-button'
-        }
-    });
+    title: 'You lost!',
+    icon: 'error',
+    confirmButtonText: 'Restart',
+    confirmButtonColor: '#28a745',
+    background: '#f0f8ff',
+    color: '#333',
+    allowOutsideClick: true,
+    allowEscapeKey: true,
+    showCloseButton: true,
+    html: `<div class='retro-content'>Wanna try again?<div>`,
+    customClass: {
+        popup: 'retro-popup',
+        title: 'retro-title',
+        confirmButton: 'retro-confirm'
+    }
+});
+
 }
 
 // Pipe generation logic
@@ -167,9 +169,8 @@ function generatePipes(pid) {
 function handleKeypress(e) {
     switch (e.key) {
         case ' ':
-            if (!isGameOver) {
-                flap();
-            } else restartGame();
+            if (!isGameOver) flap();
+            else restartGame();
             break;
         default:
             break;
@@ -194,15 +195,15 @@ function intersects(bird, pipe) {
     );
 }
 
-function restartGame() {
+async function restartGame() {
     // reset vars, bird position, pipes
     resetVariables();
-
     // start RAF(gameLoop)
     requestAnimationFrame(gameLoop);
+    await updateLeaderboard();
 }
 
-
+// Reset variables & DOM to original state
 function resetVariables() {
     isGameOver = false;
     lastFrameTime = null;
@@ -231,6 +232,34 @@ function startSession() {
     requestAnimationFrame(gameLoop);
 }
 
+// Recreate leaderboard DOM element
+async function updateLeaderboard() {
+    leaderboard.innerHTML = `<h2>Leaderboard</h2>`
+    if (cachedLeaderboard) leaderboard.appendChild(cachedLeaderboard.cloneNode(true));
+
+    try {
+        const res = await getUserData();
+        const data = await res.json();
+        data.sort((a, b) => b.highest_score - a.highest_score);
+        const ul = document.createElement('ul');
+
+        let count = Math.min(10, data.length);
+        for (let i = 0; i < count; i++) {
+            const li = document.createElement('li');
+            li.innerHTML = 
+            `<span>${i+1}.</span>
+            <span>${data[i].user_id}</span>
+            <span>${data[i].highest_score}</span>`
+            ul.appendChild(li);
+        }
+        leaderboard.innerHTML = `<h2>Leaderboard</h2>`
+        leaderboard.appendChild(ul);
+        cachedLeaderboard = ul;
+    } catch(err) {
+        console.log(err);
+    }    
+}
+
 // API calls 
 async function createUser(credentials) {
     const res = await fetch('/scores', {
@@ -251,8 +280,16 @@ async function getCredentials() {
     await Swal.fire({
         title: 'Login',
         html:
-            `<input id="swal-input1" class="swal2-input" placeholder="Username">` +
-            `<input id="swal-input2" class="swal2-input" type="password" placeholder="Password">`,
+            `<input id="swal-input1" class="swal2-input retro-input" placeholder="Username" autocomplete="off">` +
+            `<input id="swal-input2" class="swal2-input retro-input" type="password" placeholder="Password" autocomplete="off">`,
+        customClass: {
+            popup: 'retro-popup',
+            title: 'retro-title',
+            confirmButton: 'retro-confirm',
+            validationMessage: 'retro-validation'
+        },
+        confirmButtonText: 'Start Game',
+        background: '#1c1c1e',
         focusConfirm: false,
         preConfirm: () => {
             userID = document.getElementById('swal-input1').value;
@@ -263,21 +300,22 @@ async function getCredentials() {
             }
             return { userID, password };
         }
-        }).then((res) => {
-            if (res.isConfirmed) {
-                credentials = res.value;
-            }
+    }).then((res) => {
+        if (res.isConfirmed) {
+            credentials = res.value;
+        }
     });
+
     return credentials;
 }
 
 // Get credentials & create user if new
 async function setup() {
+    await updateLeaderboard();
     if (localStorage.getItem('smart_boi')) {
         userID = localStorage.getItem('smart_boi');
         return;
     }
-
     let credentials = await getCredentials();
     if (!credentials) {
         console.log('Unable to record credentials.');
@@ -313,8 +351,8 @@ async function updateUserData(userID, gamesPlayed, score,
     }
 }
 
-async function getData() {
-    return (await fetch('/scores')).json();
+async function getUserData() {
+    return await fetch('/scores');
 }
 
 async function main() {

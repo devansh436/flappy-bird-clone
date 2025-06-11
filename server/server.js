@@ -1,19 +1,23 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { createUser, getUserData, updateUserData} = require('./db.js');
+const { createUser, getUserData, getAllUserData, updateUserData} = require('./db.js');
+const dotenv = require('dotenv');
+dotenv.config();
 
-const port = 3000;
+const PORT = process.env.PORT;
 const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, '../client')));
 
 // Get
-app.get('/scores', async (req, res) => {
+app.get('/scores', async(req, res) => {
     try {
         const userID = req.query.userID;
-        const result = await getUserData(userID);
+        let result;
+        if (userID) result = await getUserData(userID);
+        else result = await getAllUserData();
         res.json(result);
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch scores. '});
@@ -41,6 +45,6 @@ app.put('/scores', async(req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
 })
