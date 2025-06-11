@@ -165,16 +165,16 @@ function generatePipes(pid) {
     mainWindow.appendChild(pipePair);
 }
 
-
+// Listener functions for space (PC) & clicks (Phone)
 function handleKeypress(e) {
-    switch (e.key) {
-        case ' ':
-            if (!isGameOver) flap();
-            else restartGame();
-            break;
-        default:
-            break;
+    if (e.key === ' ') {
+        if (!isGameOver) flap();
+        else restartGame();
     }
+}
+function handleTouch(e) {
+    if (!isGameOver) flap();
+    else restartGame();
 }
 
 // If bird goes out of bounds, user lost
@@ -238,7 +238,7 @@ async function updateLeaderboard() {
     if (cachedLeaderboard) leaderboard.appendChild(cachedLeaderboard.cloneNode(true));
 
     try {
-        const res = await getUserData();
+        const res = await fetch('/scores');
         const data = await res.json();
         data.sort((a, b) => b.highest_score - a.highest_score);
         const ul = document.createElement('ul');
@@ -351,13 +351,10 @@ async function updateUserData(userID, gamesPlayed, score,
     }
 }
 
-async function getUserData() {
-    return await fetch('/scores');
-}
-
 async function main() {
     await setup();
     document.addEventListener("keydown", handleKeypress);
+    document.addEventListener("touchstart", handleTouch);
     startSession();
 }
 
