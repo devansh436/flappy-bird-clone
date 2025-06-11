@@ -3,7 +3,7 @@
 A modern web-based Flappy Bird clone built with smooth animations, competitive leaderboard, and detailed player stats tracking.
 Fly, flap, and beat your high score!
 
-👉 **Play Now:** [flappybird-clone.render.com](https://flappybird-clone.render.com)
+👉 **Play Now:** (https://flappy-bird-beqw.onrender.com/)
 
 ---
 
@@ -42,7 +42,7 @@ Fly, flap, and beat your high score!
 
 ## 🧠 Credits
 
-Made with ❤️ by [Your Name]  
+Made with ❤️ by Devansh  
 Inspired by the original **Flappy Bird**
 
 ---
